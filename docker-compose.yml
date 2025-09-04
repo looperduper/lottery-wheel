@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  lottery-wheel:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: lottery-wheel:latest
+    container_name: lottery-wheel-app
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+    restart: unless-stopped
+    networks:
+      - lottery-network
+    labels:
+      - "com.docker.compose.project=lottery-wheel"
+      - "description=Interactive lottery wheel web application"
+
+networks:
+  lottery-network:
+    driver: bridge
