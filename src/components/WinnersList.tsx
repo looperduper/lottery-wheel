@@ -2,21 +2,44 @@
 
 interface WinnersListProps {
   winners: string[]
+  isDrawing?: boolean
 }
 
-export default function WinnersList({ winners }: WinnersListProps) {
+const CONFETTI = ['#fbbf24', '#f97316', '#10b981', '#60a5fa', '#f472b6', '#a78bfa']
+
+export default function WinnersList({ winners, isDrawing = false }: WinnersListProps) {
+  const complete = winners.length > 0 && !isDrawing
+
   return (
-    <div className="bg-white/10 backdrop-blur-md rounded-xl p-6 border border-white/20">
-      <h2 className="text-2xl font-bold text-white mb-4 flex items-center">
-        🎯 Drawed Players
+    <div className="relative overflow-hidden rounded-2xl bg-white/[0.07] backdrop-blur-md p-6 border border-white/15 shadow-[0_8px_40px_rgba(0,0,0,0.35)]">
+      {/* Confetti burst when a draw finishes */}
+      {complete && (
+        <div className="pointer-events-none absolute inset-0" aria-hidden>
+          {Array.from({ length: 24 }).map((_, i) => (
+            <span
+              key={i}
+              className="absolute top-0 block w-2 h-2 rounded-[2px]"
+              style={{
+                left: `${(i * 4.2 + 3) % 100}%`,
+                background: CONFETTI[i % CONFETTI.length],
+                animation: `confettiFall ${1.6 + (i % 5) * 0.25}s ease-in ${(i % 7) * 0.12}s both`,
+              }}
+            />
+          ))}
+        </div>
+      )}
+
+      <h2 className="relative text-xl font-bold text-white mb-4 flex items-center gap-2">
+        <span aria-hidden>🏆</span> Winners
       </h2>
-      
-      <div className="space-y-3">
+
+      <div className="relative space-y-3" aria-live="polite">
         {winners.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="text-4xl mb-2">🎯</div>
-            <p className="text-white/60 italic">
-              No drawed players yet.<br />
+          <div className="text-center py-10">
+            <div className="text-4xl mb-2 opacity-60">🎯</div>
+            <p className="text-white/50 italic">
+              No winners yet.
+              <br />
               Start a draw to see results!
             </p>
           </div>
@@ -24,59 +47,35 @@ export default function WinnersList({ winners }: WinnersListProps) {
           winners.map((winner, index) => (
             <div
               key={`${winner}-${index}`}
-              className="bg-gradient-to-r from-yellow-400/20 to-orange-500/20 border border-yellow-400/30 rounded-lg p-4 transform transition-all duration-300 hover:scale-105"
-              style={{
-                animation: `fadeInScale 0.5s ease-out ${index * 0.1}s both`
-              }}
+              className="flex items-center justify-between gap-3 bg-gradient-to-r from-amber-400/15 to-orange-500/15 border border-amber-400/30 rounded-xl px-4 py-3.5 transition-all duration-300 hover:scale-[1.02]"
+              style={{ animation: `fadeInScale 0.45s ease-out ${index * 0.08}s both` }}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <div className="text-2xl">
-                    {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏆'}
-                  </div>
-                  <div>
-                    <div className="text-white font-bold text-lg">
-                      {winner}
-                    </div>
-                    <div className="text-yellow-400 text-sm">
-                      Position #{index + 1}
-                    </div>
-                  </div>
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="text-2xl shrink-0">
+                  {index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅'}
                 </div>
-                <div className="text-right">
-                  <div className="text-white/80 text-sm">
-                    🎉 Drawed!
-                  </div>
+                <div className="min-w-0">
+                  <div className="text-white font-bold text-lg truncate">{winner}</div>
+                  <div className="text-amber-300 text-xs">Position #{index + 1}</div>
                 </div>
               </div>
+              <div className="text-emerald-300 text-sm font-semibold shrink-0">Winner!</div>
             </div>
           ))
         )}
       </div>
-      
-      {winners.length > 0 && (
-        <div className="mt-6 text-center">
-          <div className="text-white/80 text-sm mb-2">
-            Congratulations to all {winners.length} drawed player{winners.length !== 1 ? 's' : ''}! 🎊
-          </div>
-          <div className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white px-4 py-2 rounded-lg font-semibold inline-block">
+
+      {complete && (
+        <div className="relative mt-6 text-center">
+          <p className="text-white/70 text-sm mb-3">
+            Congratulations to all {winners.length} winner
+            {winners.length !== 1 ? 's' : ''}! 🎊
+          </p>
+          <div className="inline-block bg-gradient-to-r from-amber-400 to-orange-500 text-slate-900 px-5 py-2 rounded-lg font-extrabold">
             🌟 Draw Complete 🌟
           </div>
         </div>
       )}
-      
-      <style jsx>{`
-        @keyframes fadeInScale {
-          0% {
-            opacity: 0;
-            transform: scale(0.8) translateY(20px);
-          }
-          100% {
-            opacity: 1;
-            transform: scale(1) translateY(0);
-          }
-        }
-      `}</style>
     </div>
   )
 }
