@@ -1,35 +1,55 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
+
+// How long one spin takes. Shared with the page so reveal timing matches the
+// CSS transition below.
+export const SPIN_MS = 2600
 
 interface LotteryWheelProps {
   players: string[]
   isDrawing: boolean
   winners: string[]
+  /** The player the wheel should rotate to point at, or null when idle. */
+  spinTarget: string | null
 }
 
-export default function LotteryWheel({ players, isDrawing, winners }: LotteryWheelProps) {
+export default function LotteryWheel({
+  players,
+  isDrawing,
+  winners,
+  spinTarget,
+}: LotteryWheelProps) {
   // Rotation only ever increases, so the wheel never snaps back to 0.
   const [rotation, setRotation] = useState<number>(0)
   const [spinning, setSpinning] = useState<boolean>(false)
-  const wasDrawing = useRef(false)
 
   useEffect(() => {
-    // Trigger a single smooth, decelerating spin on the rising edge of isDrawing.
-    if (isDrawing && !wasDrawing.current && players.length > 0) {
-      const extraTurns = 5 + Math.floor(Math.random() * 3) // 5–7 full turns
-      const offset = Math.random() * 360
-      setSpinning(true)
-      setRotation(r => r + extraTurns * 360 + offset)
+    if (!spinTarget) return
+    const n = players.length
+    const idx = players.indexOf(spinTarget)
+    if (n === 0 || idx < 0) return
 
-      const stop = setTimeout(() => setSpinning(false), 2800)
-      wasDrawing.current = true
-      return () => clearTimeout(stop)
-    }
-    if (!isDrawing) {
-      wasDrawing.current = false
-    }
-  }, [isDrawing, players.length])
+    const segment = 360 / n
+    // The pointer sits at the top (0°). Segment `idx` is centered at
+    // (idx + 0.5) * segment measured clockwise from the top, so we must rotate
+    // the wheel by the complement to bring that center under the pointer.
+    const desiredMod = (360 - (((idx + 0.5) * segment) % 360)) % 360
+    // First spin is the most dramatic; later ones are a touch quicker.
+    const extraTurns = winners.length === 0 ? 5 : 3
+
+    setRotation(prev => {
+      const currentMod = ((prev % 360) + 360) % 360
+      const delta = ((desiredMod - currentMod) % 360 + 360) % 360
+      return prev + extraTurns * 360 + delta
+    })
+    setSpinning(true)
+
+    const stop = setTimeout(() => setSpinning(false), SPIN_MS)
+    return () => clearTimeout(stop)
+    // Re-run only when a new target is set.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spinTarget])
 
   const wheelSize = 300
   const centerX = wheelSize / 2
@@ -112,7 +132,7 @@ export default function LotteryWheel({ players, isDrawing, winners }: LotteryWhe
               style={{
                 transform: `rotate(${rotation}deg)`,
                 transition: spinning
-                  ? 'transform 2.8s cubic-bezier(0.16, 1, 0.3, 1)'
+                  ? `transform ${SPIN_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`
                   : 'none',
               }}
             >

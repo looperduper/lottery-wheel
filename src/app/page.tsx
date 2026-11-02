@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import PlayerRegistration from '@/components/PlayerRegistration'
-import LotteryWheel from '@/components/LotteryWheel'
+import LotteryWheel, { SPIN_MS } from '@/components/LotteryWheel'
 import WinnersList from '@/components/WinnersList'
 
 export default function Home() {
@@ -10,6 +10,7 @@ export default function Home() {
   const [winners, setWinners] = useState<string[]>([])
   const [numberOfWinners, setNumberOfWinners] = useState<number>(1)
   const [isDrawing, setIsDrawing] = useState<boolean>(false)
+  const [spinTarget, setSpinTarget] = useState<string | null>(null)
   const [error, setError] = useState<string>('')
 
   const addPlayer = (playerName: string) => {
@@ -39,6 +40,8 @@ export default function Home() {
     Math.max(1, players.length),
   )
 
+  const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
   const startDraw = () => {
     if (players.length === 0) {
       setError('Add at least one player before drawing.')
@@ -53,23 +56,26 @@ export default function Home() {
     setIsDrawing(true)
     setWinners([])
 
-    // Shuffle, then reveal winners one at a time for suspense.
-    const drawSequentially = async () => {
+    // Pick the winners up front, then spin the wheel to land on each one in
+    // turn so the pointer always stops on the player being drawn.
+    const run = async () => {
       const shuffled = [...players].sort(() => Math.random() - 0.5)
-      const selectedWinners: string[] = []
+      const picked = shuffled.slice(0, safeWinnerCount)
+      const revealed: string[] = []
 
-      // Let the wheel spin before the first reveal.
-      await new Promise(resolve => setTimeout(resolve, 2600))
-
-      for (let i = 0; i < safeWinnerCount; i++) {
-        selectedWinners.push(shuffled[i])
-        setWinners([...selectedWinners])
-        await new Promise(resolve => setTimeout(resolve, 700))
+      for (const name of picked) {
+        setSpinTarget(name) // triggers the wheel to spin toward this player
+        await sleep(SPIN_MS + 150) // wait for the spin to settle on the segment
+        revealed.push(name)
+        setWinners([...revealed]) // mark the landed segment as a winner
+        await sleep(650) // let it register before the next spin
       }
+
+      setSpinTarget(null)
       setIsDrawing(false)
     }
 
-    drawSequentially()
+    run()
   }
 
   const canDraw = players.length > 0 && !isDrawing
@@ -161,6 +167,7 @@ export default function Home() {
                 players={players}
                 isDrawing={isDrawing}
                 winners={winners}
+                spinTarget={spinTarget}
               />
 
               <button
