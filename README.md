@@ -4,12 +4,26 @@ Interactive lottery wheel web application with casino-style animation and sequen
 
 ## Features
 
-- ✅ **Player Registration**: Add unlimited players with unique colors
-- ✅ **Sequential Drawing**: Players are drawn one by one with suspense
+- ✅ **Shareable live draws**: Each draw gets its own link; anyone with it joins and watches in real time
+- ✅ **Host-controlled**: Only the person who created the link registers players and starts the draw
+- ✅ **Synchronized spin**: The server drives the wheel, so every viewer sees it land on the same winner at the same time
+- ✅ **Player Registration**: Add players with unique colors
+- ✅ **Sequential Drawing**: Winners are drawn one by one, and the wheel spins to point at each one
 - ✅ **Unique Colors**: Each player gets a distinct color on the wheel
-- ✅ **Casino Animation**: 3-second spinning wheel animation
 - ✅ **Responsive Design**: Works on desktop and mobile
-- ✅ **Session Storage**: No database required - in-memory storage
+- ✅ **No database required**: Live rooms are kept in the server's memory
+
+## How live draws work
+
+1. On the home page, click **Create a new draw**. You become the host and get a shareable link such as `/draw/ab12cd34`.
+2. Share that link. Anyone who opens it joins the room and watches live; the viewer count updates as people come and go.
+3. As host, register players and set how many winners to draw, then press **Start Draw**. The wheel spins and lands on each winner in turn — synchronized across every open browser.
+
+### Real-time + persistence notes
+
+- **Transport**: live updates use Server-Sent Events (`/api/lotteries/[id]/stream`); the server orchestrates the draw timeline and broadcasts each step.
+- **Storage**: rooms live in the Node process's memory. They are **lost on container restart** and are **not shared across multiple replicas**. This suits a single self-hosted container. To survive restarts or scale horizontally, back the store in `src/lib/lotteryStore.ts` with Redis (state + pub/sub).
+- Run the container as a **single instance** (don't scale `lottery-wheel` to >1 replica) so all viewers hit the same in-memory store.
 
 ## Docker Deployment
 

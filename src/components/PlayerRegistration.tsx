@@ -7,6 +7,7 @@ interface PlayerRegistrationProps {
   onAddPlayer: (playerName: string) => void
   onRemovePlayer: (playerName: string) => void
   onClearAll: () => void
+  disabled?: boolean
 }
 
 export default function PlayerRegistration({
@@ -14,11 +15,13 @@ export default function PlayerRegistration({
   onAddPlayer,
   onRemovePlayer,
   onClearAll,
+  disabled = false,
 }: PlayerRegistrationProps) {
   const [newPlayerName, setNewPlayerName] = useState('')
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    if (disabled) return
     if (newPlayerName.trim()) {
       onAddPlayer(newPlayerName)
       setNewPlayerName('')
@@ -43,11 +46,12 @@ export default function PlayerRegistration({
             onChange={e => setNewPlayerName(e.target.value)}
             placeholder="Enter player name…"
             autoComplete="off"
-            className="flex-1 min-w-0 px-3 py-2.5 rounded-lg bg-white/15 text-white placeholder-white/50 border border-white/25 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            disabled={disabled}
+            className="flex-1 min-w-0 px-3 py-2.5 rounded-lg bg-white/15 text-white placeholder-white/50 border border-white/25 focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:opacity-60"
           />
           <button
             type="submit"
-            disabled={!newPlayerName.trim()}
+            disabled={disabled || !newPlayerName.trim()}
             className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:bg-emerald-500/40 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-emerald-300"
           >
             Add
@@ -63,7 +67,8 @@ export default function PlayerRegistration({
           {players.length > 0 && (
             <button
               onClick={onClearAll}
-              className="px-3 py-1 bg-red-500/90 hover:bg-red-500 text-white text-xs font-semibold rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-red-300"
+              disabled={disabled}
+              className="px-3 py-1 bg-red-500/90 hover:bg-red-500 text-white text-xs font-semibold rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-red-300 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Clear all
             </button>
@@ -91,8 +96,9 @@ export default function PlayerRegistration({
                 </span>
                 <button
                   onClick={() => onRemovePlayer(player)}
+                  disabled={disabled}
                   aria-label={`Remove ${player}`}
-                  className="shrink-0 w-7 h-7 grid place-items-center rounded-md text-white/60 hover:text-white hover:bg-red-500/80 transition-colors focus:outline-none focus:ring-2 focus:ring-red-300"
+                  className="shrink-0 w-7 h-7 grid place-items-center rounded-md text-white/60 hover:text-white hover:bg-red-500/80 transition-colors focus:outline-none focus:ring-2 focus:ring-red-300 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                 >
                   ✕
                 </button>

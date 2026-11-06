@@ -1,56 +1,26 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-
-// How long one spin takes. Shared with the page so reveal timing matches the
-// CSS transition below.
-export const SPIN_MS = 2600
+import { SPIN_EASING, LotteryStatus } from '@/lib/lotteryTypes'
 
 interface LotteryWheelProps {
   players: string[]
-  isDrawing: boolean
   winners: string[]
-  /** The player the wheel should rotate to point at, or null when idle. */
-  spinTarget: string | null
+  /** Absolute rotation in degrees, driven by the server so all clients match. */
+  rotation: number
+  /** Whether to animate to `rotation` (true) or jump to it (false). */
+  spinning: boolean
+  spinDurationMs: number
+  status: LotteryStatus
 }
 
 export default function LotteryWheel({
   players,
-  isDrawing,
   winners,
-  spinTarget,
+  rotation,
+  spinning,
+  spinDurationMs,
+  status,
 }: LotteryWheelProps) {
-  // Rotation only ever increases, so the wheel never snaps back to 0.
-  const [rotation, setRotation] = useState<number>(0)
-  const [spinning, setSpinning] = useState<boolean>(false)
-
-  useEffect(() => {
-    if (!spinTarget) return
-    const n = players.length
-    const idx = players.indexOf(spinTarget)
-    if (n === 0 || idx < 0) return
-
-    const segment = 360 / n
-    // The pointer sits at the top (0°). Segment `idx` is centered at
-    // (idx + 0.5) * segment measured clockwise from the top, so we must rotate
-    // the wheel by the complement to bring that center under the pointer.
-    const desiredMod = (360 - (((idx + 0.5) * segment) % 360)) % 360
-    // First spin is the most dramatic; later ones are a touch quicker.
-    const extraTurns = winners.length === 0 ? 5 : 3
-
-    setRotation(prev => {
-      const currentMod = ((prev % 360) + 360) % 360
-      const delta = ((desiredMod - currentMod) % 360 + 360) % 360
-      return prev + extraTurns * 360 + delta
-    })
-    setSpinning(true)
-
-    const stop = setTimeout(() => setSpinning(false), SPIN_MS)
-    return () => clearTimeout(stop)
-    // Re-run only when a new target is set.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [spinTarget])
-
   const wheelSize = 300
   const centerX = wheelSize / 2
   const centerY = wheelSize / 2
@@ -65,7 +35,8 @@ export default function LotteryWheel({
 
   const getPlayerPositions = () =>
     players.map((player, index) => {
-      const angle = (index / players.length) * 2 * Math.PI - Math.PI / 2 + Math.PI / players.length
+      const angle =
+        (index / players.length) * 2 * Math.PI - Math.PI / 2 + Math.PI / players.length
       const x = centerX + Math.cos(angle) * radius * 0.68
       const y = centerY + Math.sin(angle) * radius * 0.68
       return { player, x, y, angle: angle * (180 / Math.PI), index }
@@ -100,6 +71,7 @@ export default function LotteryWheel({
 
   const playerPositions = getPlayerPositions()
   const wheelSegments = getWheelSegments()
+  const isSpinning = status === 'spinning' || spinning
 
   return (
     <div className="flex flex-col items-center">
@@ -108,7 +80,7 @@ export default function LotteryWheel({
         {players.length > 0 && (
           <div
             className={`absolute -inset-3 rounded-full bg-amber-400/25 blur-2xl ${
-              isDrawing ? 'animate-glow' : 'opacity-40'
+              isSpinning ? 'animate-glow' : 'opacity-40'
             }`}
             aria-hidden
           />
@@ -132,7 +104,7 @@ export default function LotteryWheel({
               style={{
                 transform: `rotate(${rotation}deg)`,
                 transition: spinning
-                  ? `transform ${SPIN_MS}ms cubic-bezier(0.16, 1, 0.3, 1)`
+                  ? `transform ${spinDurationMs}ms ${SPIN_EASING}`
                   : 'none',
               }}
             >
@@ -202,10 +174,12 @@ export default function LotteryWheel({
 
       {/* Status text */}
       <div className="mt-5 text-center min-h-[28px]">
-        {isDrawing ? (
+        {isSpinning ? (
           <div className="text-amber-300 font-bold text-lg">🎰 Spinning the wheel…</div>
         ) : winners.length > 0 ? (
-          <div className="text-emerald-400 font-bold text-lg">🎉 Draw complete!</div>
+          <div className="text-emerald-400 font-bold text-lg">
+            {status === 'done' ? '🎉 Draw complete!' : '🎉 Winner drawn!'}
+          </div>
         ) : (
           <div className="text-white/50">
             {players.length > 0 ? 'Ready to draw!' : 'Add players to get started'}
